@@ -1,10 +1,10 @@
 buildscript {
     repositories {
-        jcenter()
         maven {
             name = "Fabric"
             url = "https://maven.fabricmc.net/"
         }
+        jcenter()
         maven {
             name = "Forge"
             url = "https://files.minecraftforge.net/maven/"
@@ -54,6 +54,32 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.logging.log4j:log4j-api:2.13.0'
     compile 'org.apache.logging.log4j:log4j-core:2.13.0'
+
+
+    compileOnly files('run/.optiforge/OptiFine-remapped.jar')
+    modImplementation("com.github.Chocohead:Fabric-ASM:${project.fabricasm_version}") {
+        transitive false
+    }
+    include "com.github.Chocohead:Fabric-ASM:${project.fabricasm_version}"
+    implementation("trove:trove:1.0.2") {
+        transitive false
+    }
+    include "trove:trove:1.0.2"
+    implementation('com.nothome:javaxdelta:2.0.1') {
+        transitive false
+    }
+    include 'com.nothome:javaxdelta:2.0.1'
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+}
+
+sourceSets {
+    shim {
+        compileClasspath += main.compileClasspath
+    }
+    main {
+        compileClasspath += shim.output
+    }
 }
 
 processResources {

@@ -1,24 +1,31 @@
 {
   "schemaVersion": 1,
-  "id": "examplemod",
+  "id": "optiforge",
   "version": "${version}",
 
-  "name": "Example Mod",
-  "description": "An Example Mod for Alpha",
+  "name": "OptiForge",
+  "description": "OptiFine loader for Forge",
   "authors": [
-    "Earthcomputer"
+    "mine_diver"
   ],
   "contact": {
-    "homepage": "https://earthcomputer.net/",
-    "sources": "https://github.com/pack-png-mods/alpha-example-mod"
   },
 
-  "license": "CC0-1.0",
-  "icon": "assets/examplemod/icon.png",
+  "license": "MIT",
+  "icon": "assets/optiforge/icon.png",
 
-  "environment": "*",
+  "environment": "client",
+  "entrypoints": {
+    "mm:early_risers": [
+      "net.mine_diver.optiforge.mod.OptiFineSetup",
+      "optiforge_OptiFineAccessor"
+    ],
+    "client": [
+      "net.mine_diver.optiforge.OptiForge"
+    ]
+  },
   "mixins": [
-    "examplemod.mixins.json"
+    "optiforge.mixins.json"
   ],
 
   "depends": {

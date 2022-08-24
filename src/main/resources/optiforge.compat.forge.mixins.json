@@ -5,6 +5,7 @@
   "mixins": [
   ],
   "client": [
+    "MixinTessellator",
     "MixinWorldRenderer"
   ],
   "injectors": {

@@ -1,10 +1,10 @@
 package net.mine_diver.optiforge.util;
 
 import com.google.common.io.Files;
+import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,20 +15,6 @@ import java.util.zip.GZIPInputStream;
 
 public class Util {
 
-    public static byte[] readAll(final InputStream is) throws IOException {
-        final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final byte[] buf = new byte[1024];
-        while (true) {
-            final int len = is.read(buf);
-            if (len < 0) {
-                break;
-            }
-            baos.write(buf, 0, len);
-        }
-        is.close();
-        return baos.toByteArray();
-    }
-
     /**
      * Download from the given {@link URL} to the given {@link File} so long as there are differences between them.
      *
@@ -37,8 +23,8 @@ public class Util {
      * @param logger The logger to print everything to
      * @throws IOException If an exception occurs during the process
      */
-    public static void downloadIfChanged(URL from, File to, Logger logger) throws IOException {
-        downloadIfChanged(from, to, logger, false);
+    public static boolean downloadIfChanged(URL from, File to, Logger logger) throws IOException {
+        return downloadIfChanged(from, to, logger, false);
     }
 
     /**
@@ -50,7 +36,7 @@ public class Util {
      * @param quiet Whether to only print warnings (when <code>true</code>) or everything
      * @throws IOException If an exception occurs during the process
      */
-    public static void downloadIfChanged(URL from, File to, Logger logger, boolean quiet) throws IOException {
+    public static boolean downloadIfChanged(URL from, File to, Logger logger, boolean quiet) throws IOException {
         HttpURLConnection connection = (HttpURLConnection) from.openConnection();
 
         //If the output already exists we'll use it's last modified time
@@ -88,7 +74,7 @@ public class Util {
                 logger.info("'{}' Not Modified, skipping.", to);
             }
 
-            return; //What we've got is already fine
+            return false; //What we've got is already fine
         }
 
         long contentLength = connection.getContentLengthLong();
@@ -128,6 +114,7 @@ public class Util {
 
             saveETag(to, eTag, logger);
         }
+        return true;
     }
 
     /**
@@ -200,5 +187,13 @@ public class Util {
         } else {
             return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
         }
+    }
+
+    public static String mapClassName(String obfuscated) {
+        return FabricLoader.getInstance().isDevelopmentEnvironment() ? FabricLoader.getInstance().getMappingResolver().mapClassName("official", obfuscated) : obfuscated;
+    }
+
+    public static String mapFieldName(String className, String obfuscated, String descriptor) {
+        return FabricLoader.getInstance().isDevelopmentEnvironment() ? FabricLoader.getInstance().getMappingResolver().mapFieldName("official", className, obfuscated, descriptor) : obfuscated;
     }
 }

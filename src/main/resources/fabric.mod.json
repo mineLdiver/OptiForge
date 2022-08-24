@@ -9,6 +9,8 @@
     "mine_diver"
   ],
   "contact": {
+    "sources": "https://github.com/mineLdiver/OptiForge",
+    "issues": "https://github.com/mineLdiver/OptiForge/issues"
   },
 
   "license": "MIT",
@@ -17,11 +19,10 @@
   "environment": "client",
   "entrypoints": {
     "mm:early_risers": [
-      "net.mine_diver.optiforge.mod.OptiFineSetup",
-      "optiforge_OptiFineAccessor"
+      "net.mine_diver.optiforge.mod.OptiforgeSetup"
     ],
-    "client": [
-      "net.mine_diver.optiforge.OptiForge"
+    "optiforge:patcher": [
+      "net.mine_diver.optiforge.compat.forge.ForgePatcher"
     ]
   },
   "mixins": [

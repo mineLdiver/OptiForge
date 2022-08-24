@@ -1,8 +1,6 @@
 package net.mine_diver.optiforge.mod;
 
 import com.chocohead.mm.api.ClassTinkerers;
-import com.nothome.delta.Delta;
-import com.nothome.delta.GDiffPatcher;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
@@ -16,84 +14,61 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.OutputConsumerPath.Builder;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.mine_diver.optiforge.util.Util;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.tree.ClassNode;
+import org.apache.logging.log4j.core.config.Configurator;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
+import java.util.Arrays;
 
-public class OptiFineSetup implements Runnable {
+public class OptiforgeSetup implements Runnable {
 
-    private static final boolean OUTPUT = Boolean.parseBoolean(System.getProperty("optiforge.debug.export", "false"));
-    private static final Logger LOGGER = LogManager.getLogger();
+    public static final Logger LOGGER = LogManager.getLogger("OptiForge");
+    static {
+        Configurator.setLevel("OptiForge", Level.ALL);
+    }
+    public static final File WORK_DIR = new File(FabricLoader.getInstance().getGameDirectory(), ".optiforge");
+    static {
+        if (!WORK_DIR.exists() && ! WORK_DIR.mkdirs()) throw new RuntimeException("Couldn't create " + WORK_DIR + "!");
+    }
 
     @Override
     public void run() {
         try {
-            File ofFile = new File(FabricLoader.getInstance().getGameDirectory(), "mods/OptiFine_1_7_3_HD_G.zip");
             String namespace = FabricLoader.getInstance().getMappingResolver().getCurrentRuntimeNamespace();
-            System.out.println("Remapping OptiFine from official to " + namespace);
-            File workDir = new File(FabricLoader.getInstance().getGameDirectory(), ".optiforge");
-            workDir.mkdir();
-            File vanillaJar = new File(workDir, "minecraft-b1.7.3-client.jar");
-            Util.downloadIfChanged(new URL("https://launcher.mojang.com/v1/objects/43db9b498cb67058d2e12d394e6507722e71bb45/client.jar"), vanillaJar, LOGGER);
-            File vanillaJarRemapped = new File(workDir, "minecraft-b1.7.3-client-remapped.jar");
-            IMappingProvider mappings = createMappings("official", namespace);
-            Path[] libs = getLibs(getMinecraftJar());
-            remap(vanillaJar, libs, vanillaJarRemapped, mappings);
-            File completeJar = new File(workDir, "OptiFine-remapped.jar");
-            remap(ofFile, libs, completeJar, mappings);
+            Path mcJar = getMinecraftJar();
 
-            Delta delta = new Delta();
-            try (ZipFile of = new ZipFile(completeJar); ZipFile mc = new ZipFile(vanillaJarRemapped)) {
-                Enumeration<? extends ZipEntry> ofEntries = of.entries();
-                while (ofEntries.hasMoreElements()) {
-                    ZipEntry ofEntry = ofEntries.nextElement();
-                    ZipEntry mcEntry = mc.getEntry(ofEntry.getName());
-                    if (!ofEntry.isDirectory() && mcEntry != null) {
-                        byte[] vanillaBytes = Util.readAll(mc.getInputStream(mcEntry));
-                        byte[] rawOFBytes = Util.readAll(of.getInputStream(ofEntry));
-                        ClassReader ofReader = new ClassReader(rawOFBytes);
-                        ClassNode ofNode = new ClassNode();
-                        ofReader.accept(ofNode, ClassReader.EXPAND_FRAMES);
-                        ofNode.methods.stream().filter(methodNode -> methodNode.localVariables != null).forEach(methodNode -> methodNode.localVariables.clear());
-                        ClassWriter ofWriter = new ClassWriter(0);
-                        ofNode.accept(ofWriter);
-                        byte[] ofBytes = ofWriter.toByteArray();
-                        ClassTinkerers.addTransformation(mcEntry.getName().replace(".class", ""), classNode -> {
-                            ClassWriter writer = new ClassWriter(0);
-                            classNode.accept(writer);
-                            byte[] mcBytes = writer.toByteArray();
-                            byte[] patchBytes;
-                            byte[] patchedBytes;
-                            try {
-                                patchBytes = delta.compute(vanillaBytes.clone(), ofBytes);
-                                debugExport(workDir, mcEntry, mcBytes, patchBytes, new byte[0]);
-                                patchedBytes = new GDiffPatcher().patch(mcBytes.clone(), patchBytes);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            ClassReader reader = new ClassReader(patchedBytes);
-                            ClassNode patchedNode = new ClassNode();
-                            reader.accept(patchedNode, ClassReader.EXPAND_FRAMES);
-                            classNode.methods = patchedNode.methods;
-                            classNode.fields = patchedNode.fields;
-                        });
-                    }
+            File vanillaFile = new File(WORK_DIR, "minecraft-b1.7.3-client.jar");
+            boolean mcChanged = Util.downloadIfChanged(new URL("https://launcher.mojang.com/v1/objects/43db9b498cb67058d2e12d394e6507722e71bb45/client.jar"), vanillaFile, LOGGER);
+            File vanillaJar = vanillaFile;
+            if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                vanillaJar = new File(WORK_DIR, "minecraft-remapped.jar");
+                if (mcChanged) {
+                    LOGGER.info("Remapping Minecraft from official to " + namespace);
+                    remap(vanillaFile, getLibs(mcJar), vanillaJar, createMappings("official", namespace));
                 }
             }
-            ClassTinkerers.addURL(completeJar.toURI().toURL());
+
+            File ofFile = OptifineVersion.getOptiFineFile();
+            File ofJar = ofFile;
+            if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                ofJar = new File(WORK_DIR, "optifine-remapped.jar");
+                if (OptifineVersion.hasChanged(ofFile)) {
+                    LOGGER.info("Remapping OptiFine from official to " + namespace);
+                    remap(ofFile, getLibs(mcJar), ofJar, createMappings("official", namespace));
+                }
+            }
+
+            OptifineInjector.generatePatches(vanillaJar, ofJar);
+            ClassTinkerers.addURL(ofJar.toURI().toURL());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -169,7 +144,7 @@ public class OptiFineSetup implements Runnable {
         return libs;
     }
 
-    private static Path getMinecraftJar() {
+    public static Path getMinecraftJar() {
         String givenJar = System.getProperty("optiforge.mc-jar");
         if (givenJar != null) {
             File givenJarFile = new File(givenJar);
@@ -209,7 +184,7 @@ public class OptiFineSetup implements Runnable {
         return minecraftJar;
     }
 
-    private static Path getLaunchMinecraftJar() {
+    public static Path getLaunchMinecraftJar() {
         ModContainer mod = FabricLoader.getInstance().getModContainer("minecraft").orElseThrow(() -> new IllegalStateException("No Minecraft?"));
         URI uri = mod.getRootPath().toUri();
         assert "jar".equals(uri.getScheme());
@@ -226,51 +201,6 @@ public class OptiFineSetup implements Runnable {
             return Paths.get(new URI(path.substring(0, split)));
         } catch (URISyntaxException e) {
             throw new RuntimeException("Failed to find Minecraft jar from " + uri + " (calculated " + path.substring(0, split) + ')', e);
-        }
-    }
-
-    private static void debugExport(File workDir, ZipEntry mcEntry, byte[] mcBytes, byte[] patchBytes, byte[] patchedBytes) {
-        if (OUTPUT) {
-            System.out.println("OUTPUT!");
-            File outVanilla = new File(workDir, "vanilla/" + mcEntry.getName());
-            try {
-                if (!outVanilla.getParentFile().exists() && !outVanilla.getParentFile().mkdirs() || !outVanilla.exists() && !outVanilla.createNewFile())
-                    throw new RuntimeException("Couldn't create " + outVanilla + "!");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            try (OutputStream outStream = Files.newOutputStream(outVanilla.toPath())) {
-                outStream.write(mcBytes.clone());
-                outStream.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            File outPatch = new File(workDir, "patch/" + mcEntry.getName().replace(".class", ".xdelta"));
-            try {
-                if (!outPatch.getParentFile().exists() && !outPatch.getParentFile().mkdirs() || !outPatch.exists() && !outPatch.createNewFile())
-                    throw new RuntimeException("Couldn't create " + outPatch + "!");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            try (OutputStream outStream = Files.newOutputStream(outPatch.toPath())) {
-                outStream.write(patchBytes.clone());
-                outStream.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            File outPatched = new File(workDir, "patched/" + mcEntry.getName());
-            try {
-                if (!outPatched.getParentFile().exists() && !outPatched.getParentFile().mkdirs() || !outPatched.exists() && !outPatched.createNewFile())
-                    throw new RuntimeException("Couldn't create " + outPatched + "!");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            try (OutputStream outStream = Files.newOutputStream(outPatched.toPath())) {
-                outStream.write(patchedBytes.clone());
-                outStream.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 }

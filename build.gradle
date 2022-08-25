@@ -56,7 +56,7 @@ dependencies {
     compile 'org.apache.logging.log4j:log4j-core:2.13.0'
 
 
-    compileOnly files('run/.optiforge/OptiFine-remapped.jar')
+    compileOnly files('run/.optiforge/optifine-remapped.jar')
     modImplementation("com.github.Chocohead:Fabric-ASM:${project.fabricasm_version}") {
         transitive false
     }

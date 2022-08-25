@@ -57,7 +57,7 @@ public class OptiforgeSetup implements Runnable {
                 }
             }
 
-            File ofFile = OptifineVersion.getOptiFineFile();
+            File ofFile = OptifineVersion.getOptifineFile();
             File ofJar = ofFile;
             if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
                 ofJar = new File(WORK_DIR, "optifine-remapped.jar");

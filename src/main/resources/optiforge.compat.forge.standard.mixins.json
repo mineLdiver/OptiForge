@@ -6,7 +6,7 @@
   ],
   "client": [
     "MixinTessellator",
-    "MixinWorldRenderer"
+    "standard.MixinWorldRenderer"
   ],
   "injectors": {
     "defaultRequire": 1

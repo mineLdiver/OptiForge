@@ -7,6 +7,7 @@ import net.mine_diver.optiforge.patcher.MethodComparison;
 import net.mine_diver.optiforge.patcher.PatchClass;
 import net.mine_diver.optiforge.patcher.PatchField;
 import net.mine_diver.optiforge.patcher.PatchMethod;
+import net.mine_diver.optiforge.util.MixinHelper;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.objectweb.asm.ClassReader;
@@ -46,18 +47,14 @@ public class OptifineInjector {
                 ZipEntry ofEntry = ofEntries.nextElement();
                 ZipEntry mcEntry = mc.getEntry(ofEntry.getName());
                 if (!ofEntry.isDirectory() && mcEntry != null) {
-                    byte[] mcRawBytes;
-                    byte[] ofRawBytes;
+                    byte[] mcBytes;
+                    byte[] ofBytes;
                     try (InputStream mcStream = mc.getInputStream(mcEntry); InputStream ofStream = of.getInputStream(ofEntry)) {
-                        mcRawBytes = IOUtils.toByteArray(mcStream);
-                        ofRawBytes = IOUtils.toByteArray(ofStream);
+                        mcBytes = IOUtils.toByteArray(mcStream);
+                        ofBytes = IOUtils.toByteArray(ofStream);
                     }
-                    debugExport("minecraft/" + mcEntry.getName(), mcRawBytes);
-                    debugExport("optifine/" + ofEntry.getName(), ofRawBytes);
-                    byte[] mcBytes = flattenClass(mcRawBytes);
-                    byte[] ofBytes = flattenClass(ofRawBytes);
-                    debugExport("flattened_minecraft/" + mcEntry.getName(), mcBytes);
-                    debugExport("flattened_optifine/" + ofEntry.getName(), ofBytes);
+                    debugExport("minecraft/" + mcEntry.getName(), mcBytes);
+                    debugExport("optifine/" + ofEntry.getName(), ofBytes);
                     ClassReader mcReader = new ClassReader(mcBytes);
                     ClassNode mcNode = new ClassNode();
                     mcReader.accept(mcNode, ClassReader.EXPAND_FRAMES);
@@ -102,8 +99,10 @@ public class OptifineInjector {
                                         break;
                                     }
                                 }
-                            } else
+                            } else {
                                 classNode.methods.add(patchMethod.node);
+                                MixinHelper.addMethodInfo(classNode, patchMethod.node);
+                            }
                         });
                         ClassWriter writer = new ClassWriter(0);
                         classNode.accept(writer);
@@ -114,17 +113,6 @@ public class OptifineInjector {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    static byte[] flattenClass(byte[] classBytes) {
-        ClassReader reader = new ClassReader(classBytes);
-        ClassNode classNode = new ClassNode();
-        reader.accept(classNode, 0);
-        classNode.methods.stream().filter(methodNode -> methodNode.parameters != null).forEach(methodNode -> methodNode.parameters.clear());
-        classNode.methods.stream().filter(methodNode -> methodNode.localVariables != null).forEach(methodNode -> methodNode.localVariables.clear());
-        ClassWriter writer = new ClassWriter(0);
-        classNode.accept(writer);
-        return writer.toByteArray();
     }
 
     private static void debugExport(String path, byte[] bytes) {

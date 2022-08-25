@@ -31,7 +31,7 @@ public class OptifineVersion {
     public static Edition EDITION;
 
     @RequiredArgsConstructor
-    enum Edition {
+    public enum Edition {
         STANDARD("HD"),
         SMOOTH("HD_S"),
         MULTITHREADED("HD_MT"),

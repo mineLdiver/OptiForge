@@ -1,4 +1,4 @@
-package net.mine_diver.optiforge.compat.forge.mixin;
+package net.mine_diver.optiforge.compat.forge.mixin.standard;
 
 import forge.ForgeHooksClient;
 import net.minecraft.src.*;
@@ -58,7 +58,6 @@ public class MixinWorldRenderer {
         ForgeHooksClient.beforeRenderPass(renderPass);
     }
 
-    @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(
             method = "updateRenderer()V",
             at = @At(
@@ -72,13 +71,12 @@ public class MixinWorldRenderer {
             CallbackInfo ci,
             int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Object lightCache, HashSet<TileEntity> hashset, int one, ChunkCache chunkcache,
             RenderBlocks renderblocks,
-            int renderPass, int flag, int hasRenderedBlocks, int hasGlList, int y, int z, int x, int i3,
+            int renderPass, boolean flag, boolean hasRenderedBlocks, boolean hasGlList, int y, int z, int x, int i3,
             Block block
     ) {
         ForgeHooksClient.beforeBlockRender(block, renderblocks);
     }
 
-    @SuppressWarnings("InvalidInjectorMethodSignature")
     @Inject(
             method = "updateRenderer()V",
             at = @At(
@@ -92,7 +90,7 @@ public class MixinWorldRenderer {
             CallbackInfo ci,
             int xMin, int yMin, int zMin, int xMax, int yMax, int zMax, Object lightCache, HashSet<TileEntity> hashset, int one, ChunkCache chunkcache,
             RenderBlocks renderblocks,
-            int renderPass, int flag, int hasRenderedBlocks, int hasGlList, int y, int z, int x, int i3,
+            int renderPass, boolean flag, boolean hasRenderedBlocks, boolean hasGlList, int y, int z, int x, int i3,
             Block block
     ) {
         ForgeHooksClient.afterBlockRender(block, renderblocks);

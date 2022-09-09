@@ -1,0 +1,16 @@
+{
+  "required": true,
+  "package": "net.mine_diver.optiforge.compat.newfrontiercraft.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+  ],
+  "client": [
+    "MixinGuiVideoSettings",
+    "MixinRenderEngine",
+    "MixinTessellator",
+    "smooth.MixinWorldRenderer"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

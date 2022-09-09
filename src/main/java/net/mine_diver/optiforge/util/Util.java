@@ -1,7 +1,6 @@
 package net.mine_diver.optiforge.util;
 
 import com.google.common.io.Files;
-import net.fabricmc.loader.api.FabricLoader;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 
@@ -187,13 +186,5 @@ public class Util {
         } else {
             return String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0));
         }
-    }
-
-    public static String mapClassName(String obfuscated) {
-        return FabricLoader.getInstance().isDevelopmentEnvironment() ? FabricLoader.getInstance().getMappingResolver().mapClassName("official", obfuscated) : obfuscated;
-    }
-
-    public static String mapFieldName(String className, String obfuscated, String descriptor) {
-        return FabricLoader.getInstance().isDevelopmentEnvironment() ? FabricLoader.getInstance().getMappingResolver().mapFieldName("official", className, obfuscated, descriptor) : obfuscated;
     }
 }

@@ -81,13 +81,17 @@ public class OptifineInjector {
                     ClassTinkerers.addTransformation(patch.name, classNode -> {
                         patchers.forEach(patcher -> patcher.preApply(classNode, ofNode, patch));
                         patch.fields.forEach(patchField -> {
+                            boolean skipCheck = false;
                             if (patchField.overwrite) {
                                 for (int i = 0; i < classNode.fields.size(); i++)
                                     if (patchField.node.name.equals(classNode.fields.get(i).name)) {
                                         classNode.fields.set(i, patchField.node);
-                                        break;
+                                        return;
                                     }
-                            } else if (classNode.fields.stream().noneMatch(fieldNode -> patchField.node.name.equals(fieldNode.name)))
+                                OptiforgeSetup.LOGGER.warn("Couldn't find overwrite target field \"L" + patch.name + ";" + patchField.node.name + ":" + patchField.node.desc + "\"! Injecting instead.");
+                                skipCheck = true;
+                            }
+                            if (skipCheck || classNode.fields.stream().noneMatch(fieldNode -> patchField.node.name.equals(fieldNode.name)))
                                 classNode.fields.add(patchField.node);
                         });
                         patch.methods.forEach(patchMethod -> {
@@ -96,14 +100,15 @@ public class OptifineInjector {
                                     MethodNode mcMethodNode = classNode.methods.get(i);
                                     if ((patchMethod.node.name + patchMethod.node.desc).equals(mcMethodNode.name + mcMethodNode.desc)) {
                                         classNode.methods.set(i, patchMethod.node);
-                                        break;
+                                        return;
                                     }
                                 }
-                            } else {
-                                classNode.methods.add(patchMethod.node);
-                                MixinHelper.addMethodInfo(classNode, patchMethod.node);
+                                OptiforgeSetup.LOGGER.warn("Couldn't find overwrite target method \"L" + patch.name + ";" + patchMethod.node.name + patchMethod.node.desc + "\"! Injecting instead.");
                             }
+                            classNode.methods.add(patchMethod.node);
+                            MixinHelper.addMethodInfo(classNode, patchMethod.node);
                         });
+                        patchers.forEach(patcher -> patcher.postApply(classNode, ofNode, patch));
                         ClassWriter writer = new ClassWriter(0);
                         classNode.accept(writer);
                         debugExport("patched/" + patch.name + ".class", writer.toByteArray());

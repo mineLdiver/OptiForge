@@ -22,7 +22,8 @@
       "net.mine_diver.optiforge.mod.OptiforgeSetup"
     ],
     "optiforge:patcher": [
-      "net.mine_diver.optiforge.compat.forge.ForgePatcher"
+      "net.mine_diver.optiforge.compat.forge.ForgePatcher",
+      "net.mine_diver.optiforge.compat.newfrontiercraft.NewFrontierCraftPatcher"
     ]
   },
   "mixins": [

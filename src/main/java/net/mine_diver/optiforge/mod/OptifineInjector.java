@@ -91,8 +91,10 @@ public class OptifineInjector {
                                 OptiforgeSetup.LOGGER.warn("Couldn't find overwrite target field \"L" + patch.name + ";" + patchField.node.name + ":" + patchField.node.desc + "\"! Injecting instead.");
                                 skipCheck = true;
                             }
-                            if (skipCheck || classNode.fields.stream().noneMatch(fieldNode -> patchField.node.name.equals(fieldNode.name)))
+                            if (skipCheck || classNode.fields.stream().noneMatch(fieldNode -> patchField.node.name.equals(fieldNode.name))) {
                                 classNode.fields.add(patchField.node);
+                                MixinHelper.addFieldInfo(classNode, patchField.node);
+                            }
                         });
                         patch.methods.forEach(patchMethod -> {
                             if (patchMethod.overwrite) {

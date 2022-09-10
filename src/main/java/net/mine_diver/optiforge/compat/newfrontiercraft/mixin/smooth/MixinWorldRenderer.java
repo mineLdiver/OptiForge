@@ -3,9 +3,8 @@ package net.mine_diver.optiforge.compat.newfrontiercraft.mixin.smooth;
 import forge.ForgeHooksClient;
 import net.minecraft.src.*;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
@@ -16,6 +15,65 @@ import static org.objectweb.asm.Opcodes.PUTSTATIC;
 
 @Mixin(WorldRenderer.class)
 public class MixinWorldRenderer {
+
+    @Shadow public boolean[] skipRenderPass;
+
+    public boolean[] tempSkipRenderPass;
+
+    @ModifyConstant(
+            method = "<init>(Lnet/minecraft/src/World;Ljava/util/List;IIIII)V",
+            constant = {
+                    @Constant(intValue = 2, ordinal = 0),
+                    @Constant(intValue = 2, ordinal = 2),
+                    @Constant(intValue = 2, ordinal = 3),
+                    @Constant(intValue = 2, ordinal = 4),
+                    @Constant(intValue = 2, ordinal = 6),
+                    @Constant(intValue = 2, ordinal = 7)
+            }
+    )
+    private int fixNfcRenderPass1(int constant) {
+        return 4;
+    }
+
+    @ModifyConstant(
+            method = {
+                    "finishUpdate()V",
+                    "updateRenderer(J)Z",
+                    "setDontDraw()V"
+            },
+            constant = @Constant(intValue = 2),
+            remap = false
+    )
+    private int fixNfcRenderPass2(int constant) {
+        return 4;
+    }
+
+    @Inject(
+            method = "updateRenderer(J)Z",
+            at = @At("TAIL"),
+            remap = false
+    )
+    private void fixNfcRenderPass3(long finishTime, CallbackInfoReturnable<Boolean> cir) {
+        skipRenderPass[2] = tempSkipRenderPass[2];
+        skipRenderPass[3] = tempSkipRenderPass[3];
+    }
+
+    @ModifyConstant(
+            method = "callOcclusionQueryList()V",
+            constant = @Constant(intValue = 2)
+    )
+    private int fixNfcRenderPass4(int constant) {
+        return 4;
+    }
+
+    @Inject(
+            method = "skipAllRenderPasses()Z",
+            at = @At("RETURN"),
+            cancellable = true
+    )
+    private void fixNfcRenderPass5(CallbackInfoReturnable<Boolean> cir) {
+        cir.setReturnValue(cir.getReturnValueZ() && skipRenderPass[2] && skipRenderPass[3]);
+    }
 
     @Redirect(
             method = "<clinit>()V",

@@ -5,8 +5,10 @@
   "mixins": [
   ],
   "client": [
+    "MixinEntityRenderer",
     "MixinGuiVideoSettings",
     "MixinRenderEngine",
+    "MixinRenderGlobal",
     "MixinTessellator",
     "standard.MixinWorldRenderer"
   ],
